@@ -26,10 +26,10 @@ int main() {
 
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
-	ball.velocity = vec2(-30,-20);
+	ball.velocity = vec2(-300,-200);
 
 
-	const float paddleMoveVelocity = 200;
+	const float paddleMoveVelocity = 400;
 	paddle1.size = vec2(5,20);
 	paddle1.position = vec2(100,300);
 	paddle2.size = vec2(5,20);
@@ -63,8 +63,25 @@ int main() {
 			paddle2.position += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
 		}
 
+		paddle1.setYWithinRange(0,height);
+		paddle2.setYWithinRange(0,height);
+
 		ball.position += deltaTime.asSeconds() * ball.velocity;
-		bool isColliding = ball.isCollidingWith(paddle1);
+
+		if (!ball.isWithinYRange(0, height)) {
+			ball.velocity.y = -ball.velocity.y;
+		}
+
+		if (!ball.isWithinXRange(0, width)) {
+			ball.velocity.x = -ball.velocity.x;
+		}
+
+		bool isColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);
+
+		if (isColliding) {
+			ball.velocity.x = -ball.velocity.x;
+		}
+
 		// Draw Everything
 		window.clear();
 

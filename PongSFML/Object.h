@@ -18,6 +18,37 @@ public:
 		return collisionX && collisionY;
 	}
 
+	void setYWithinRange(float min, float max) {
+		if (position.y < min) {
+			position.y = min;
+		}
+
+		if (position.y > max) {
+			position.y = max;
+		}
+	}
+
+	bool isAboveX(float test) {
+		return position.x + size.x > test;
+	}
+	bool isAboveY(float test) {
+		return position.y + size.y > test;
+	}
+	bool isBelowX(float test) {
+		return position.x - size.x < test;
+	}
+	bool isBelowY(float test) {
+		return position.y - size.y < test;
+	}
+
+	bool isWithinYRange(float min,float max) {
+		return !(isAboveY(max) || isBelowY(min));
+	}
+
+	bool isWithinXRange(float min,float max) {
+		return !(isAboveX(max) || isBelowX(min));
+	}
+
 private:
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
 		sf::VertexArray quad(sf::Quads, 4);
