@@ -26,31 +26,54 @@ int main() {
 	Ball ball;
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
-	ball.velocity = vec2(-300,-200);
+	//ball.velocity = vec2(-300,-200);
+	ball.velocity = vec2(-6000,-4000);
 
 	std::cout << ball.position.x << std::endl;
 
 	Paddle paddle1, paddle2;
-	const float paddleMoveVelocity = 400;
+	//const float paddleMoveVelocity = 400;
+	const float paddleMoveVelocity = 12000;
 	paddle1.size = vec2(5,20);
 	paddle1.position = vec2(100,300);
 	paddle2.size = vec2(5,20);
 	paddle2.position = vec2(700,300);
 
-	Screen screen;
-	screen.size = vec2(width/2, height/2);
+	Object top, bottom;
+	top.position = vec2(width/2, (-height)/2);
+	top.size = vec2(width/2, height/2);
+
+	bottom.position = vec2(width/2, (3*height)/2);
+	bottom.size = vec2(width/2, height/2);
+
+	Screen left, right;
+	left.position = vec2((-width)/2, height/2);
+	left.size = vec2(width/2, height/2);
+
+	right.position = vec2((3 * width)/2, height/2);
+	right.size = vec2(width/2, height/2);
+
+
+
+
+	/*screen.size = vec2(width/2, height/2);
 	screen.size.x += 2.0f * ball.size.x; // hide the ball behind the screen when scoring
 	screen.position = vec2(width/2, height/2);
 	screen.paddle1Score = 0;
-	screen.paddle2Score = 0;
+	screen.paddle2Score = 0;*/
 
 	// intersections
-	paddle1.collideObjects.push_back(&screen);
-	paddle2.collideObjects.push_back(&screen);
+	paddle1.collideObjects.push_back(&top);
+	paddle1.collideObjects.push_back(&bottom);
+	paddle2.collideObjects.push_back(&top);
+	paddle2.collideObjects.push_back(&bottom);
 
 	ball.collideObjects.push_back(&paddle2);
-	ball.collideObjects.push_back(&screen);
 	ball.collideObjects.push_back(&paddle1);
+	ball.collideObjects.push_back(&top);
+	ball.collideObjects.push_back(&bottom);
+	ball.collideObjects.push_back(&left);
+	ball.collideObjects.push_back(&right);
 
 
 	sf::Clock clock;
@@ -68,24 +91,26 @@ int main() {
 
 		// Apply Movement & Physics
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			paddle1.newPosVector += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+			paddle1.velocity = deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-			paddle1.newPosVector += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle1.velocity = deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			paddle2.newPosVector += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+			paddle2.velocity = deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			paddle2.newPosVector += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle2.velocity = deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
 		}
 
+		//ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
+
 		bool isColliding = false;
+
 		isColliding |= paddle1.processCollisions();
 		isColliding |= paddle2.processCollisions();
 
-		ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
 		isColliding |= ball.processCollisions();
 
 
@@ -99,13 +124,12 @@ int main() {
 		collidingSFText.setPosition(100,100);
 		window.draw(collidingSFText);
 
-		sf::Text paddle1Score(std::to_string(screen.paddle1Score), font, 48);
-		sf::Text paddle2Score(std::to_string(screen.paddle2Score), font, 48);
+		sf::Text paddle1Score(std::to_string(left.paddleScore), font, 48);
+		sf::Text paddle2Score(std::to_string(right.paddleScore), font, 48);
 		paddle1Score.setPosition(267,100);
 		paddle2Score.setPosition(533,100);
 		window.draw(paddle1Score);
 		window.draw(paddle2Score);
-
 
 		window.draw(ball);
 		window.draw(paddle1);

@@ -3,12 +3,12 @@
 #include "Object.h"
 class Paddle : public Object {
 public:
-	void onCollide(Object& collider, CollideInfo info) override {
-		position += info.percent * newPosVector;
-		position -= (1.0f - info.percent) * newPosVector; // reflect with the remaining percents
+	void onCollide(Object& collider, CollideInfo info, float time) override {
+		position += velocity * time;
+		velocity = vec2(0,0);
 	}
 
-	void onNoCollide() override {
-		position += newPosVector;
+	void onNoCollide(float time) override {
+		position += velocity * time;
 	}
 };

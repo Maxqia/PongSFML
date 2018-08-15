@@ -6,6 +6,11 @@
 
 extern sf::Time deltaTime;
 
+struct CollideInfo {
+	float percent;
+	vec2 normal;
+};
+
 class Object : public sf::Drawable {
 public:
 	/* position, centered on the object */
@@ -13,7 +18,7 @@ public:
 	vec2 size;
 
 	vec2 velocity;
-	vec2 newPosVector;
+	//vec2 newPosVector;
 
 	bool isCollidingWith(Object collider) {
 		bool collisionX = position.x + size.x >= collider.position.x - size.x
@@ -54,61 +59,71 @@ public:
 		return !(isAboveX(max) || isBelowX(min));
 	}
 
-	vec2 topLeftCorner() {
+	vec2 topLeftCorner() const {
 		return position + size;
 	}
 
-	vec2 bottomRightCorner() {
+	vec2 bottomRightCorner() const {
 		return position - size;
 	}
 
 	std::vector<Object*> collideObjects = {};
-
-	struct CollideInfo {
-		float percent;
-		vec2 normal;
-	};
 
 	// returns true if it collided
 	bool processCollisions() {
 		bool ret = false;
 		std::vector<struct CollideInfo> collideInfos(collideObjects.size());
 
-		int smallestIndex = -1;
-		for(size_t i = 0; i < collideObjects.size(); i++) {
-			struct CollideInfo newInfo = {};
-			newInfo.percent = this->intersectionTest(*collideObjects[i], newPosVector, newInfo.normal);
-			collideInfos[i] = newInfo;
+		float percentLeft = 1.0f;
+		float totalTime = deltaTime.asSeconds();
+
+		while (percentLeft > 0.01f) {
+			bool didCollide = false;
+			int smallestIndex = -1;
+			for(size_t i = 0; i < collideObjects.size(); i++) {
+				struct CollideInfo newInfo = {};
+				newInfo.percent = this->intersectionTest(*collideObjects[i], percentLeft * totalTime * velocity, newInfo.normal);
+				collideInfos[i] = newInfo;
 
 
-			if ((smallestIndex < 0 && newInfo.percent <= 1.0f) 
-				|| (smallestIndex >= 0  && newInfo.percent < collideInfos[smallestIndex].percent)) {
-				smallestIndex = i;
-				ret = true;
+				if ((smallestIndex < 0 && newInfo.percent <= 1.0f) 
+					|| (smallestIndex >= 0  && newInfo.percent < collideInfos[smallestIndex].percent)) {
+					smallestIndex = i;
+					didCollide = true;
+					ret = true;
+				}
+			}
+		
+			if (didCollide) {
+				float percentUsed = percentLeft * collideInfos[smallestIndex].percent;
+				percentLeft -= percentUsed;
+				onCollide(*collideObjects[smallestIndex], collideInfos[smallestIndex], percentUsed * totalTime);
+				collideObjects[smallestIndex]->onCollided(*this, collideInfos[smallestIndex]);
+			} else {
+				onNoCollide(percentLeft * totalTime);
+				break;
 			}
 		}
-		
-		if (ret) {
-			onCollide(*collideObjects[smallestIndex], collideInfos[smallestIndex]);
-			collideObjects[smallestIndex]->onCollided(*this, collideInfos[smallestIndex]);
-		} else {
-			onNoCollide();
-		}
-
-		newPosVector = vec2();
+		//velocity = vec2();
+		//newPosVector = vec2();
 
 		return ret;
 	}
 
-	virtual void onCollide(Object& collider, CollideInfo info) {};
-	virtual void onNoCollide() {};
+	virtual void onCollide(Object& collider, CollideInfo info, float time) {};
+	virtual void onNoCollide(float time) {};
 	virtual void onCollided(Object& collider, CollideInfo info) {};
 
 	// r is newposvector
 	// s is other object's size
-	float intersectionTest(Object& b, vec2 r, vec2& normal) {
-		vec2 p = position;
-		//vec2 r = newPosVector;
+	float intersectionTest(Object& diff, vec2 newPosVector, vec2& normal) const {
+		//Object b = minkowskiDifference(diff);
+		Object b = diff.minkowskiDifference(*this);
+		vec2 p(0,0);
+		
+		//vec2 r = newPosVector - diff.newPosVector;
+		//vec2 p = position;
+		vec2 r = newPosVector;
 
 		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2(-(2.0f * b.size).x, 0));
 		float side2 = lineIntTest(p, r, b.topLeftCorner(), vec2(0, -(2.0f * b.size).y));
@@ -116,6 +131,8 @@ public:
 		float side4 = lineIntTest(p, r, b.bottomRightCorner(), vec2(0, (2.0f * b.size).y));
 
 		float nearestIntersection = std::numeric_limits<float>::max();
+		normal = vec2(0,0);
+
 		if (nearestIntersection > side1) {
 			nearestIntersection = side1;
 			normal = vec2(0,1);
@@ -163,14 +180,27 @@ public:
 		}
 	}
 
+	Object minkowskiDifference(const Object copy) const {
+		vec2 topLeft = this->bottomRightCorner() - copy.topLeftCorner();
+		vec2 fullSize = (2.0f * this->size) + (2.0f * copy.size);
+
+		Object ret;
+		ret.position = vec2(topLeft + (fullSize / 2.0f));
+		ret.size = fullSize / 2.0f;
+		return ret;
+	}
+
 private:
+
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
-		sf::VertexArray quad(sf::Quads, 4);
+		//sf::VertexArray quad(sf::Quads, 4);
+		sf::VertexArray quad(sf::LineStrip, 5);
 
 		quad[0] = position + size;
 		quad[1] = vec2(position.x - size.x, position.y + size.y);
 		quad[2] = position - size;
 		quad[3] = vec2(position.x + size.x, position.y - size.y);
+		quad[4] = position + size;
 
 
 		target.draw(quad);
