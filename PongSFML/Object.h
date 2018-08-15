@@ -66,23 +66,23 @@ public:
 		vec2 p = position;
 		vec2 r = newPosVector;
 
-		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2((2.0f * b.size).x, 0));
+		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2(-(2.0f * b.size).x, 0));
 		float side2 = lineIntTest(p, r, b.topLeftCorner(), vec2(0, -(2.0f * b.size).y));
-		float side3 = lineIntTest(p, r, b.bottomRightCorner(), vec2(-(2.0f * b.size).x, 0));
+		float side3 = lineIntTest(p, r, b.bottomRightCorner(), vec2((2.0f * b.size).x, 0));
 		float side4 = lineIntTest(p, r, b.bottomRightCorner(), vec2(0, (2.0f * b.size).y));
 
 		float nearestIntersection = side1;
-		if (nearestIntersection < side2) nearestIntersection = side2;
-		if (nearestIntersection < side3) nearestIntersection = side3;
-		if (nearestIntersection < side4) nearestIntersection = side4;
+		if (nearestIntersection > side2) nearestIntersection = side2;
+		if (nearestIntersection > side3) nearestIntersection = side3;
+		if (nearestIntersection > side4) nearestIntersection = side4;
 		return nearestIntersection;
 	}
 
 	// p + zr = q + us
 	static float lineIntTest(vec2 p, vec2 r, vec2 q, vec2 s) {
-		float rxs = vec2::cross(r,s);
+		float rxs = cross(r,s);
 		vec2 qp = q - p;
-		float qps = vec2::cross(qp, s);
+		float qps = cross(qp, s);
 		
 		if (rxs == 0.0f) {
 			if (qps != 0.0f) {
@@ -92,7 +92,7 @@ public:
 			}
 		} 
 
-		float qpr = vec2::cross(qp, r);
+		float qpr = cross(qp, r);
 		float z = qps / rxs;
 		float u = qpr / rxs;
 		

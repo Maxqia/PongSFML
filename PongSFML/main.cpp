@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "Object.h"
+#include "Paddle.h"
 
 const int width = 800;
 const int height = 600;
@@ -19,7 +20,7 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	Object paddle1, paddle2, ball, screen;
+	Object ball, screen;
 
 	screen.size = vec2(width/2, height/2);
 	screen.position = vec2(width/2, height/2);
@@ -30,7 +31,7 @@ int main() {
 
 	std::cout << ball.position.x << std::endl;
 
-
+	Paddle paddle1, paddle2;
 	const float paddleMoveVelocity = 400;
 	paddle1.size = vec2(5,20);
 	paddle1.position = vec2(100,300);
@@ -51,7 +52,7 @@ int main() {
 		}
 
 		// Apply Movement & Physics
-		/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 			paddle1.newPosVector += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
@@ -63,19 +64,27 @@ int main() {
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
 			paddle2.newPosVector += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
-		}*/
-
-		/*float p1int = paddle1.intersectionTest(screen);
-		if (p1int < 1.0f) {
-			paddle1.position += p1int * paddle1.newPosVector;
 		}
 
-		float p2int = paddle1.intersectionTest(screen);
+		bool isColliding = false;
+
+		//float p1int = Object::lineIntTest(paddle1.position, paddle1.newPosVector, vec2(0,0), vec2(width,0));
+		float p1int = paddle1.intersectionTest(screen);
+		if (p1int < 1.0f) {
+			isColliding |= true;
+			paddle1.position += p1int * paddle1.newPosVector;
+			paddle1.position += (-1.0f + p1int) * paddle1.newPosVector;
+		} else paddle1.position += paddle1.newPosVector;
+		paddle1.newPosVector = vec2();
+
+		float p2int = paddle2.intersectionTest(screen);
 		if (p2int < 1.0f) {
+			isColliding |= true;
 			paddle2.position += p2int * paddle2.newPosVector;
-		}*/
+		} else paddle2.position += paddle2.newPosVector;
+		paddle2.newPosVector = vec2();
 		/*paddle1.setYWithinRange(0,height);
-		paddle2.setYWithinRange(0,height);
+		paddle2.setYWithinRange(0,height);*/
 
 		ball.position += deltaTime.asSeconds() * ball.velocity;
 
@@ -85,13 +94,20 @@ int main() {
 
 		if (!ball.isWithinXRange(0, width)) {
 			ball.velocity.x = -ball.velocity.x;
-		}*/
+		}
 
-		bool isColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);
+		bool ballIsColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);
 
-		/*if (isColliding) {
+		/*if (ballIsColliding) {
 			ball.velocity.x = -ball.velocity.x;
 		}*/
+		isColliding |= ballIsColliding;
+
+		float bInt = ball.intersectionTest(paddle1);
+		if (bInt < 1.0f) {
+			std::cout << ball.intersectionTest(paddle1) << std::endl;
+		}
+
 
 		// Draw Everything
 		window.clear();
@@ -104,13 +120,14 @@ int main() {
 		window.draw(text);
 		window.draw(ball);
 		window.draw(paddle1);
-		window.draw(paddle2);
+		//window.draw(paddle2);
+		//window.draw(screen);
 
 		// draw center line
 		for(int y = 50; y < (height - 50); y += 40) {
 			sf::VertexArray lines(sf::Lines, 2);
-			lines[0].position = vec2(width/2, y);
-			lines[1].position = vec2(width/2, y+20);
+			lines[0].position = vec2(width/2.0f, y);
+			lines[1].position = vec2(width/2.0f, y+20);
 			window.draw(lines);
 		}
 		window.display();
