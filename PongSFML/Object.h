@@ -1,7 +1,8 @@
 #pragma once
 #include <SFML/System.hpp>
 
-#define vec2 sf::Vector2f
+#include "Vector.h"
+
 class Object : public sf::Drawable {
 public:
 	/* position, centered on the object */
@@ -9,6 +10,7 @@ public:
 	vec2 size;
 
 	vec2 velocity;
+	vec2 newPosVector;
 
 	bool isCollidingWith(Object collider) {
 		bool collisionX = position.x + size.x >= collider.position.x - size.x
@@ -49,6 +51,57 @@ public:
 		return !(isAboveX(max) || isBelowX(min));
 	}
 
+	vec2 topLeftCorner() {
+		return position + size;
+	}
+
+	vec2 bottomRightCorner() {
+		return position - size;
+	}
+
+
+	// r is newposvector
+	// s is other object's size
+	float intersectionTest(Object b) {
+		vec2 p = position;
+		vec2 r = newPosVector;
+
+		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2((2.0f * b.size).x, 0));
+		float side2 = lineIntTest(p, r, b.topLeftCorner(), vec2(0, -(2.0f * b.size).y));
+		float side3 = lineIntTest(p, r, b.bottomRightCorner(), vec2(-(2.0f * b.size).x, 0));
+		float side4 = lineIntTest(p, r, b.bottomRightCorner(), vec2(0, (2.0f * b.size).y));
+
+		float nearestIntersection = side1;
+		if (nearestIntersection < side2) nearestIntersection = side2;
+		if (nearestIntersection < side3) nearestIntersection = side3;
+		if (nearestIntersection < side4) nearestIntersection = side4;
+		return nearestIntersection;
+	}
+
+	// p + zr = q + us
+	static float lineIntTest(vec2 p, vec2 r, vec2 q, vec2 s) {
+		float rxs = vec2::cross(r,s);
+		vec2 qp = q - p;
+		float qps = vec2::cross(qp, s);
+		
+		if (rxs == 0.0f) {
+			if (qps != 0.0f) {
+				return std::numeric_limits<float>::max(); // parallel case
+			} else { 
+				return 0.0f; // collinear case
+			}
+		} 
+
+		float qpr = vec2::cross(qp, r);
+		float z = qps / rxs;
+		float u = qpr / rxs;
+		
+		if (z <= 1.0f && z >= 0.0f && u <= 1.0f && u >= 0.0f) {
+			return z;
+		} else {
+			return std::numeric_limits<float>::max();
+		}
+	}
 private:
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
 		sf::VertexArray quad(sf::Quads, 4);

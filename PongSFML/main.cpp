@@ -28,6 +28,8 @@ int main() {
 	ball.position = vec2(width/2, height/2);
 	ball.velocity = vec2(-300,-200);
 
+	std::cout << ball.position.x << std::endl;
+
 
 	const float paddleMoveVelocity = 400;
 	paddle1.size = vec2(5,20);
@@ -49,21 +51,30 @@ int main() {
 		}
 
 		// Apply Movement & Physics
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			paddle1.position += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+		/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+			paddle1.newPosVector += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-			paddle1.position += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle1.newPosVector += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			paddle2.position += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+			paddle2.newPosVector += deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			paddle2.position += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle2.newPosVector += deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+		}*/
+
+		/*float p1int = paddle1.intersectionTest(screen);
+		if (p1int < 1.0f) {
+			paddle1.position += p1int * paddle1.newPosVector;
 		}
 
-		paddle1.setYWithinRange(0,height);
+		float p2int = paddle1.intersectionTest(screen);
+		if (p2int < 1.0f) {
+			paddle2.position += p2int * paddle2.newPosVector;
+		}*/
+		/*paddle1.setYWithinRange(0,height);
 		paddle2.setYWithinRange(0,height);
 
 		ball.position += deltaTime.asSeconds() * ball.velocity;
@@ -74,13 +85,13 @@ int main() {
 
 		if (!ball.isWithinXRange(0, width)) {
 			ball.velocity.x = -ball.velocity.x;
-		}
+		}*/
 
 		bool isColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);
 
-		if (isColliding) {
+		/*if (isColliding) {
 			ball.velocity.x = -ball.velocity.x;
-		}
+		}*/
 
 		// Draw Everything
 		window.clear();
