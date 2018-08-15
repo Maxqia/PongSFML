@@ -5,6 +5,7 @@
 #include "Object.h"
 #include "Paddle.h"
 #include "Ball.h"
+#include "Screen.h"
 
 const int width = 800;
 const int height = 600;
@@ -22,10 +23,6 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	Object screen;
-	screen.size = vec2(width/2, height/2);
-	screen.position = vec2(width/2, height/2);
-
 	Ball ball;
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
@@ -40,6 +37,13 @@ int main() {
 	paddle2.size = vec2(5,20);
 	paddle2.position = vec2(700,300);
 
+	Screen screen;
+	screen.size = vec2(width/2, height/2);
+	screen.size.x += 2.0f * ball.size.x; // hide the ball behind the screen when scoring
+	screen.position = vec2(width/2, height/2);
+	screen.paddle1Score = 0;
+	screen.paddle2Score = 0;
+
 	// intersections
 	paddle1.collideObjects.push_back(&screen);
 	paddle2.collideObjects.push_back(&screen);
@@ -47,6 +51,7 @@ int main() {
 	ball.collideObjects.push_back(&paddle2);
 	ball.collideObjects.push_back(&screen);
 	ball.collideObjects.push_back(&paddle1);
+
 
 	sf::Clock clock;
 	while (window.isOpen()) {
@@ -83,34 +88,25 @@ int main() {
 		ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
 		isColliding |= ball.processCollisions();
 
-		/*vec2 normal;
-		float intr = ball.intersectionTest(screen, ball.newPosVector, normal);
-		float int2 = ball.intersectionTest(paddle1, ball.newPosVector, normal);
-		float int3 = ball.intersectionTest(paddle2, ball.newPosVector, normal);
-		if (int2 < intr) intr = int2;
-		if (int3 < intr) intr = int3;
-
-		if (intr < 1.0f) {
-			isColliding |= true;
-			ball.position += intr * deltaTime.asSeconds() * ball.velocity;
-
-			// rotate 90 degrees
-			ball.velocity = vec2(-ball.velocity.y, ball.velocity.x);
-			ball.position += (1.0f - intr) * deltaTime.asSeconds() * ball.velocity; // reflect with the remaining percents
-
-		} else ball.position += deltaTime.asSeconds() * ball.velocity;
-		ball.newPosVector = vec2();*/
-
 
 		// Draw Everything
 		window.clear();
 
-		std::string collidingText = "Colliding : ";
-		collidingText += isColliding ? "True" : "False";
-		sf::Text text(collidingText, font, 12);
-		text.setPosition(100,100);
-		
-		window.draw(text);
+		//std::string collidingText = "Colliding : ";
+		//collidingText += isColliding ? "True" : "False";
+		std::string collidingText = isColliding ? "Pong!" : "";
+		sf::Text collidingSFText(collidingText, font, 12);
+		collidingSFText.setPosition(100,100);
+		window.draw(collidingSFText);
+
+		sf::Text paddle1Score(std::to_string(screen.paddle1Score), font, 48);
+		sf::Text paddle2Score(std::to_string(screen.paddle2Score), font, 48);
+		paddle1Score.setPosition(267,100);
+		paddle2Score.setPosition(533,100);
+		window.draw(paddle1Score);
+		window.draw(paddle2Score);
+
+
 		window.draw(ball);
 		window.draw(paddle1);
 		window.draw(paddle2);

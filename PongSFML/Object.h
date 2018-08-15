@@ -90,6 +90,7 @@ public:
 		
 		if (ret) {
 			onCollide(*collideObjects[smallestIndex], collideInfos[smallestIndex]);
+			collideObjects[smallestIndex]->onCollided(*this, collideInfos[smallestIndex]);
 		} else {
 			onNoCollide();
 		}
@@ -101,6 +102,7 @@ public:
 
 	virtual void onCollide(Object& collider, CollideInfo info) {};
 	virtual void onNoCollide() {};
+	virtual void onCollided(Object& collider, CollideInfo info) {};
 
 	// r is newposvector
 	// s is other object's size
