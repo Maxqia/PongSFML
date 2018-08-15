@@ -8,6 +8,7 @@
 
 const int width = 800;
 const int height = 600;
+sf::Time deltaTime;
 
 int main() {
 	sf::RenderWindow window(sf::VideoMode(width,height), "Pong!");
@@ -39,9 +40,17 @@ int main() {
 	paddle2.size = vec2(5,20);
 	paddle2.position = vec2(700,300);
 
+	// intersections
+	paddle1.collideObjects.push_back(&screen);
+	paddle2.collideObjects.push_back(&screen);
+
+	ball.collideObjects.push_back(&paddle2);
+	ball.collideObjects.push_back(&screen);
+	ball.collideObjects.push_back(&paddle1);
+
 	sf::Clock clock;
 	while (window.isOpen()) {
-		sf::Time deltaTime = clock.getElapsedTime();
+		deltaTime = clock.getElapsedTime();
 		clock.restart();
 
 		// Gather All Events
@@ -68,12 +77,13 @@ int main() {
 		}
 
 		bool isColliding = false;
-		isColliding |= paddle1.processIntersection(screen);
-		isColliding |= paddle2.processIntersection(screen);
+		isColliding |= paddle1.processCollisions();
+		isColliding |= paddle2.processCollisions();
 
 		ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
+		isColliding |= ball.processCollisions();
 
-		vec2 normal;
+		/*vec2 normal;
 		float intr = ball.intersectionTest(screen, ball.newPosVector, normal);
 		float int2 = ball.intersectionTest(paddle1, ball.newPosVector, normal);
 		float int3 = ball.intersectionTest(paddle2, ball.newPosVector, normal);
@@ -89,7 +99,7 @@ int main() {
 			ball.position += (1.0f - intr) * deltaTime.asSeconds() * ball.velocity; // reflect with the remaining percents
 
 		} else ball.position += deltaTime.asSeconds() * ball.velocity;
-		ball.newPosVector = vec2();
+		ball.newPosVector = vec2();*/
 
 
 		// Draw Everything

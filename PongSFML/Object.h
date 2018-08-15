@@ -4,6 +4,8 @@
 
 #include "Vector.h"
 
+extern sf::Time deltaTime;
+
 class Object : public sf::Drawable {
 public:
 	/* position, centered on the object */
@@ -60,7 +62,7 @@ public:
 		return position - size;
 	}
 
-	std::vector<Object> collideObjects = {};
+	std::vector<Object*> collideObjects = {};
 
 	struct CollideInfo {
 		float percent;
@@ -68,14 +70,14 @@ public:
 	};
 
 	// returns true if it collided
-	bool processCollisions(Object object) {
+	bool processCollisions() {
 		bool ret = false;
 		std::vector<struct CollideInfo> collideInfos(collideObjects.size());
 
-		size_t smallestIndex = -1;
+		int smallestIndex = -1;
 		for(size_t i = 0; i < collideObjects.size(); i++) {
 			struct CollideInfo newInfo = {};
-			newInfo.percent = this->intersectionTest(collideObjects[i], newPosVector, newInfo.normal);
+			newInfo.percent = this->intersectionTest(*collideObjects[i], newPosVector, newInfo.normal);
 			collideInfos[i] = newInfo;
 
 
@@ -87,20 +89,22 @@ public:
 		}
 		
 		if (ret) {
-			onCollide(collideObjects[smallestIndex], collideInfos[smallestIndex]);
+			onCollide(*collideObjects[smallestIndex], collideInfos[smallestIndex]);
 		} else {
 			onNoCollide();
 		}
 
+		newPosVector = vec2();
+
 		return ret;
 	}
 
-	virtual void onCollide(Object collider, CollideInfo info) {};
+	virtual void onCollide(Object& collider, CollideInfo info) {};
 	virtual void onNoCollide() {};
 
 	// r is newposvector
 	// s is other object's size
-	float intersectionTest(Object b, vec2 r, vec2& normal) {
+	float intersectionTest(Object& b, vec2 r, vec2& normal) {
 		vec2 p = position;
 		//vec2 r = newPosVector;
 

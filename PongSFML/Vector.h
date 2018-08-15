@@ -39,3 +39,11 @@ template <typename T>
 T dot(vec<T> v, vec<T> w) {
 	return (v.x * w.x) + (v.y * w.y);
 };
+
+template <typename T>
+vec<T> reflect(vec<T> initial, vec<T> normal) {
+	auto d = initial;
+	auto n = normal;
+
+	return d - ((2 * dot(d,n)) * n);
+}

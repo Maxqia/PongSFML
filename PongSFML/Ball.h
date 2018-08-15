@@ -4,23 +4,19 @@
 #include "Object.h"
 class Ball : public Object {
 public:
-	// returns true if it collided
-	bool processIntersection(Object object, float time) {
-		bool ret = false;
-		vec2 normal;
+	void onCollide(Object& collider, CollideInfo info) override {
 
-		float intersection = this->intersectionTest(object, time * velocity, normal);
-		if (intersection < 1.0f) {
-			ret = true;
-			position += intersection * time * velocity;
+		position += info.percent * deltaTime.asSeconds() * velocity;
 
-			// rotate 90 degrees
-			velocity = vec2(-velocity.y, velocity.x);
-			position += (1.0f - intersection) * time * velocity; // reflect with the remaining percents
+		/*// rotate 90 degrees
+		velocity = vec2(-velocity.y, velocity.x);*/
 
-		} else position += time * velocity;
-		newPosVector = vec2();
+		// reflect across normal
+		velocity = reflect(velocity, info.normal);
+		position += (1.0f - info.percent) * deltaTime.asSeconds() * velocity; // reflect with the remaining percents
+	}
 
-		return ret;
+	void onNoCollide() override {
+		position += deltaTime.asSeconds() * velocity;
 	}
 };
