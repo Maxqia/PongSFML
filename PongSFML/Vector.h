@@ -34,3 +34,8 @@ template <typename T>
 T cross(vec<T> v, vec<T> w) {
 	return (v.x * w.y) - (v.y * w.x);
 };
+
+template <typename T>
+T dot(vec<T> v, vec<T> w) {
+	return (v.x * w.x) + (v.y * w.y);
+};

@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/System.hpp>
+#include <vector>
 
 #include "Vector.h"
 
@@ -59,24 +60,47 @@ public:
 		return position - size;
 	}
 
-	/*// returns true if it collided
-	bool processIntersection(Object object) {
-		bool ret = false;
+	std::vector<Object> collideObjects = {};
 
-		float intersection = this->intersectionTest(object);
-		if (intersection < 1.0f) {
-			ret = true;
-			position += intersection * newPosVector;
-			position -= (1.0f - intersection) * newPosVector; // reflect with the remaining percents
-		} else position += newPosVector;
-		newPosVector = vec2();
+	struct CollideInfo {
+		float percent;
+		vec2 normal;
+	};
+
+	// returns true if it collided
+	bool processCollisions(Object object) {
+		bool ret = false;
+		std::vector<struct CollideInfo> collideInfos(collideObjects.size());
+
+		size_t smallestIndex = -1;
+		for(size_t i = 0; i < collideObjects.size(); i++) {
+			struct CollideInfo newInfo = {};
+			newInfo.percent = this->intersectionTest(collideObjects[i], newPosVector, newInfo.normal);
+			collideInfos[i] = newInfo;
+
+
+			if ((smallestIndex < 0 && newInfo.percent <= 1.0f) 
+				|| (smallestIndex >= 0  && newInfo.percent < collideInfos[smallestIndex].percent)) {
+				smallestIndex = i;
+				ret = true;
+			}
+		}
+		
+		if (ret) {
+			onCollide(collideObjects[smallestIndex], collideInfos[smallestIndex]);
+		} else {
+			onNoCollide();
+		}
 
 		return ret;
-	}*/
+	}
+
+	virtual void onCollide(Object collider, CollideInfo info) {};
+	virtual void onNoCollide() {};
 
 	// r is newposvector
 	// s is other object's size
-	float intersectionTest(Object b, vec2 r) {
+	float intersectionTest(Object b, vec2 r, vec2& normal) {
 		vec2 p = position;
 		//vec2 r = newPosVector;
 
@@ -85,10 +109,26 @@ public:
 		float side3 = lineIntTest(p, r, b.bottomRightCorner(), vec2((2.0f * b.size).x, 0));
 		float side4 = lineIntTest(p, r, b.bottomRightCorner(), vec2(0, (2.0f * b.size).y));
 
-		float nearestIntersection = side1;
-		if (nearestIntersection > side2) nearestIntersection = side2;
-		if (nearestIntersection > side3) nearestIntersection = side3;
-		if (nearestIntersection > side4) nearestIntersection = side4;
+		float nearestIntersection = std::numeric_limits<float>::max();
+		if (nearestIntersection > side1) {
+			nearestIntersection = side1;
+			normal = vec2(0,1);
+		}
+
+		if (nearestIntersection > side2) {
+			nearestIntersection = side2;
+			normal = vec2(-1,0);
+		}
+
+		if (nearestIntersection > side3) {
+			nearestIntersection = side3;
+			normal = vec2(0,-1);
+		}
+
+		if (nearestIntersection > side4) {
+			nearestIntersection = side4;
+			normal = vec2(1,0);
+		}
 		return nearestIntersection;
 	}
 

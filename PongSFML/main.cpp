@@ -68,32 +68,15 @@ int main() {
 		}
 
 		bool isColliding = false;
-
 		isColliding |= paddle1.processIntersection(screen);
 		isColliding |= paddle2.processIntersection(screen);
-		//float p1int = Object::lineIntTest(paddle1.position, paddle1.newPosVector, vec2(0,0), vec2(width,0));
-		/*float p1int = paddle1.intersectionTest(screen);
-		if (p1int < 1.0f) {
-			isColliding |= true;
-			paddle1.position += p1int * paddle1.newPosVector;
-			paddle1.position += (-1.0f + p1int) * paddle1.newPosVector;
-		} else paddle1.position += paddle1.newPosVector;
-		paddle1.newPosVector = vec2();*/
-
-		/*float p2int = paddle2.intersectionTest(screen);
-		if (p2int < 1.0f) {
-			isColliding |= true;
-			paddle2.position += p2int * paddle2.newPosVector;
-		} else paddle2.position += paddle2.newPosVector;
-		paddle2.newPosVector = vec2();*/
-		/*paddle1.setYWithinRange(0,height);
-		paddle2.setYWithinRange(0,height);*/
 
 		ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
 
-		float intr = ball.intersectionTest(screen, ball.newPosVector);
-		float int2 = ball.intersectionTest(paddle1, ball.newPosVector);
-		float int3 = ball.intersectionTest(paddle2, ball.newPosVector);
+		vec2 normal;
+		float intr = ball.intersectionTest(screen, ball.newPosVector, normal);
+		float int2 = ball.intersectionTest(paddle1, ball.newPosVector, normal);
+		float int3 = ball.intersectionTest(paddle2, ball.newPosVector, normal);
 		if (int2 < intr) intr = int2;
 		if (int3 < intr) intr = int3;
 
@@ -107,27 +90,6 @@ int main() {
 
 		} else ball.position += deltaTime.asSeconds() * ball.velocity;
 		ball.newPosVector = vec2();
-
-
-		/*if (!ball.isWithinYRange(0, height)) {
-			ball.velocity.y = -ball.velocity.y;
-		}
-
-		if (!ball.isWithinXRange(0, width)) {
-			ball.velocity.x = -ball.velocity.x;
-		}
-
-		bool ballIsColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);*/
-
-		/*if (ballIsColliding) {
-			ball.velocity.x = -ball.velocity.x;
-		}*/
-		//isColliding |= ballIsColliding;
-
-		/*float bInt = ball.intersectionTest(paddle1);
-		if (bInt < 1.0f) {
-			std::cout << ball.intersectionTest(paddle1) << std::endl;
-		}*/
 
 
 		// Draw Everything
