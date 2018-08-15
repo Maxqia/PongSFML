@@ -59,12 +59,26 @@ public:
 		return position - size;
 	}
 
+	/*// returns true if it collided
+	bool processIntersection(Object object) {
+		bool ret = false;
+
+		float intersection = this->intersectionTest(object);
+		if (intersection < 1.0f) {
+			ret = true;
+			position += intersection * newPosVector;
+			position -= (1.0f - intersection) * newPosVector; // reflect with the remaining percents
+		} else position += newPosVector;
+		newPosVector = vec2();
+
+		return ret;
+	}*/
 
 	// r is newposvector
 	// s is other object's size
-	float intersectionTest(Object b) {
+	float intersectionTest(Object b, vec2 r) {
 		vec2 p = position;
-		vec2 r = newPosVector;
+		//vec2 r = newPosVector;
 
 		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2(-(2.0f * b.size).x, 0));
 		float side2 = lineIntTest(p, r, b.topLeftCorner(), vec2(0, -(2.0f * b.size).y));
@@ -102,6 +116,7 @@ public:
 			return std::numeric_limits<float>::max();
 		}
 	}
+
 private:
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
 		sf::VertexArray quad(sf::Quads, 4);

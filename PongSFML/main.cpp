@@ -4,6 +4,7 @@
 
 #include "Object.h"
 #include "Paddle.h"
+#include "Ball.h"
 
 const int width = 800;
 const int height = 600;
@@ -20,11 +21,11 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	Object ball, screen;
-
+	Object screen;
 	screen.size = vec2(width/2, height/2);
 	screen.position = vec2(width/2, height/2);
 
+	Ball ball;
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
 	ball.velocity = vec2(-300,-200);
@@ -68,27 +69,47 @@ int main() {
 
 		bool isColliding = false;
 
+		isColliding |= paddle1.processIntersection(screen);
+		isColliding |= paddle2.processIntersection(screen);
 		//float p1int = Object::lineIntTest(paddle1.position, paddle1.newPosVector, vec2(0,0), vec2(width,0));
-		float p1int = paddle1.intersectionTest(screen);
+		/*float p1int = paddle1.intersectionTest(screen);
 		if (p1int < 1.0f) {
 			isColliding |= true;
 			paddle1.position += p1int * paddle1.newPosVector;
 			paddle1.position += (-1.0f + p1int) * paddle1.newPosVector;
 		} else paddle1.position += paddle1.newPosVector;
-		paddle1.newPosVector = vec2();
+		paddle1.newPosVector = vec2();*/
 
-		float p2int = paddle2.intersectionTest(screen);
+		/*float p2int = paddle2.intersectionTest(screen);
 		if (p2int < 1.0f) {
 			isColliding |= true;
 			paddle2.position += p2int * paddle2.newPosVector;
 		} else paddle2.position += paddle2.newPosVector;
-		paddle2.newPosVector = vec2();
+		paddle2.newPosVector = vec2();*/
 		/*paddle1.setYWithinRange(0,height);
 		paddle2.setYWithinRange(0,height);*/
 
-		ball.position += deltaTime.asSeconds() * ball.velocity;
+		ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
 
-		if (!ball.isWithinYRange(0, height)) {
+		float intr = ball.intersectionTest(screen, ball.newPosVector);
+		float int2 = ball.intersectionTest(paddle1, ball.newPosVector);
+		float int3 = ball.intersectionTest(paddle2, ball.newPosVector);
+		if (int2 < intr) intr = int2;
+		if (int3 < intr) intr = int3;
+
+		if (intr < 1.0f) {
+			isColliding |= true;
+			ball.position += intr * deltaTime.asSeconds() * ball.velocity;
+
+			// rotate 90 degrees
+			ball.velocity = vec2(-ball.velocity.y, ball.velocity.x);
+			ball.position += (1.0f - intr) * deltaTime.asSeconds() * ball.velocity; // reflect with the remaining percents
+
+		} else ball.position += deltaTime.asSeconds() * ball.velocity;
+		ball.newPosVector = vec2();
+
+
+		/*if (!ball.isWithinYRange(0, height)) {
 			ball.velocity.y = -ball.velocity.y;
 		}
 
@@ -96,17 +117,17 @@ int main() {
 			ball.velocity.x = -ball.velocity.x;
 		}
 
-		bool ballIsColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);
+		bool ballIsColliding = ball.isCollidingWith(paddle1) || ball.isCollidingWith(paddle2);*/
 
 		/*if (ballIsColliding) {
 			ball.velocity.x = -ball.velocity.x;
 		}*/
-		isColliding |= ballIsColliding;
+		//isColliding |= ballIsColliding;
 
-		float bInt = ball.intersectionTest(paddle1);
+		/*float bInt = ball.intersectionTest(paddle1);
 		if (bInt < 1.0f) {
 			std::cout << ball.intersectionTest(paddle1) << std::endl;
-		}
+		}*/
 
 
 		// Draw Everything
@@ -120,7 +141,7 @@ int main() {
 		window.draw(text);
 		window.draw(ball);
 		window.draw(paddle1);
-		//window.draw(paddle2);
+		window.draw(paddle2);
 		//window.draw(screen);
 
 		// draw center line
