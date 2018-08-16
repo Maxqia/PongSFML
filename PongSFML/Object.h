@@ -7,12 +7,7 @@
 
 extern sf::Time deltaTime;
 
-struct CollideInfo {
-	float percent;
-	vec2 normal;
-};
-
-#define QZERO 0.0002f
+// For the most part, it's a AABB
 class Object : public sf::Drawable {
 public:
 	/* position, centered on the object */
@@ -20,29 +15,46 @@ public:
 	vec2 size;
 
 	vec2 velocity;
-	//vec2 newPosVector;
+
+	// Objects that can collide with this Object
+	std::vector<Object*> collideObjects = {};
+
+	// Objects currently colliding with this Object
+	std::unordered_set<Object*> objColliding = {};
+
+	virtual void onCollisionEnter(Object& obj, vec2 normal) {};
+	virtual void onCollision(Object& obj, vec2 normal, bool first) {};
+	virtual void onCollisionExit(Object& obj, vec2 normal) {};
+	virtual void onCollided(Object& collider) {};
 
 	void applyVelocity() {
 		position += velocity * deltaTime.asSeconds();
 	}
 
+	bool doCollision() {
+		for(Object* obj : collideObjects) {
+			if (isCollidingWith(obj)) {
+				vec2 normal = collisionGetNormal(obj);
+
+				bool first = objColliding.find(obj) == objColliding.end();
+				if (first) {
+					onCollisionEnter(*obj, normal);
+				}
+				onCollision(*obj, normal, first);
+				obj->onCollided(*this);
+
+				objColliding.insert(obj);
+			} else {
+				size_t erasedObjects = objColliding.erase(obj);
+				if (erasedObjects > 0) {
+					// on collision exit, but too lazy to impl
+				}
+			}
+		}
+		return !objColliding.empty();
+	}
+
 	bool isCollidingWith(const Object* collider) const {
-		/*bool collisionX = position.x + size.x >= collider.position.x - size.x
-			&& collider.position.x + size.x >= position.x - size.x;
-		bool collisionY = collider.position.y + size.y >= position.y - size.y
-			&& position.y + size.y >= collider.position.y - size.y;
-		return collisionX && collisionY;*/
-		/*bool collisionX = this->topLeftCorner().x >= collider->bottomRightCorner().x
-			&& collider->topLeftCorner().x >= this->bottomRightCorner().x;
-		bool collisionY = this->topLeftCorner().y >= collider->bottomRightCorner().y
-			&& collider->topLeftCorner().y >= this->bottomRightCorner().y;*/
-
-		/*bool collisionX = this->bottomRightCorner().x > collider->topLeftCorner().x
-			&& this->topLeftCorner().x < collider->bottomRightCorner().x;
-		bool collisionY = this->bottomRightCorner().y < collider->topLeftCorner().y
-			&& this->topLeftCorner().y > collider->bottomRightCorner().y;
-		return collisionX && collisionY;*/
-
 		bool collisionX1 = this->topLeftCorner().x > collider->bottomRightCorner().x;
 		bool collisionX2 = this->bottomRightCorner().x < collider->topLeftCorner().x;
 		bool collisionY1 = this->topLeftCorner().y > collider->bottomRightCorner().y;
@@ -52,22 +64,6 @@ public:
 
 	// lots of edge cases, but whatever 
 	vec2 collisionGetNormal(const Object* collider) const {
-		/*vec2 direction = collider.position - this->position;
-
-		if (abs(direction.x) < abs(direction.y)) {
-			if (signbit(direction.x)) {
-				return vec2(-1,0);
-			} else {
-				return vec2(1,0);
-			}
-		} else {
-			if (signbit(direction.y)) {
-				return vec2(0,-1);
-			} else {
-				return vec2(0,1);
-			}
-		}*/
-
 		// thinking done on paper :)
 		float leastOf = std::numeric_limits<float>::max();
 		vec2 normal = vec2(0,0);
@@ -108,35 +104,6 @@ public:
 		return normal;
 	}
 
-	std::unordered_set<Object*> objColliding = {};
-	void doCollision() {
-		std::unordered_set<Object*> objCurrentlyColliding;
-		for(Object* obj : collideObjects) {
-			if (isCollidingWith(obj)) {
-				vec2 normal = collisionGetNormal(obj);
-				
-				bool first = objColliding.find(obj) == objColliding.end();
-				if (first) {
-					onCollisionEnter(*obj, normal);
-				}
-				onCollision(*obj, normal, first);
-				obj->onCollided(*this);
-
-				objColliding.insert(obj);
-			} else {
-				size_t erasedObjects = objColliding.erase(obj);
-				if (erasedObjects > 0) {
-					// on collision exit,but too lazy to impl
-				}
-			}
-		}
-	}
-
-	virtual void onCollisionEnter(Object& obj, vec2 normal) {};
-	virtual void onCollision(Object& obj, vec2 normal, bool first) {};
-	virtual void onCollisionExit(Object& obj, vec2 normal) {};
-	virtual void onCollided(Object& collider) {};
-
 	void setYWithinRange(float min, float max) {
 		if (position.y < min) {
 			position.y = min;
@@ -147,24 +114,24 @@ public:
 		}
 	}
 
-	bool isAboveX(float test) {
+	bool isAboveX(float test) const {
 		return position.x + size.x > test;
 	}
-	bool isAboveY(float test) {
+	bool isAboveY(float test) const {
 		return position.y + size.y > test;
 	}
-	bool isBelowX(float test) {
+	bool isBelowX(float test) const {
 		return position.x - size.x < test;
 	}
-	bool isBelowY(float test) {
+	bool isBelowY(float test) const {
 		return position.y - size.y < test;
 	}
 
-	bool isWithinYRange(float min,float max) {
+	bool isWithinYRange(float min,float max) const {
 		return !(isAboveY(max) || isBelowY(min));
 	}
 
-	bool isWithinXRange(float min,float max) {
+	bool isWithinXRange(float min,float max) const {
 		return !(isAboveX(max) || isBelowX(min));
 	}
 
@@ -176,7 +143,28 @@ public:
 		return position - size;
 	}
 
-	std::vector<Object*> collideObjects = {};
+private:
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
+		//sf::VertexArray quad(sf::Quads, 4);
+		sf::VertexArray quad(sf::LineStrip, 5);
+
+		quad[0] = position + size;
+		quad[1] = vec2(position.x - size.x, position.y + size.y);
+		quad[2] = position - size;
+		quad[3] = vec2(position.x + size.x, position.y - size.y);
+		quad[4] = position + size;
+
+
+		target.draw(quad);
+	}
+};
+
+// Previous, Terrible Collision Code
+/*
+struct CollideInfo {
+	float percent;
+	vec2 normal;
+};
 
 	// returns true if it collided
 	bool processCollisions() {
@@ -299,20 +287,4 @@ public:
 		ret.size = fullSize / 2.0f;
 		return ret;
 	}
-
-private:
-
-	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
-		//sf::VertexArray quad(sf::Quads, 4);
-		sf::VertexArray quad(sf::LineStrip, 5);
-
-		quad[0] = position + size;
-		quad[1] = vec2(position.x - size.x, position.y + size.y);
-		quad[2] = position - size;
-		quad[3] = vec2(position.x + size.x, position.y - size.y);
-		quad[4] = position + size;
-
-
-		target.draw(quad);
-	}
-};
+*/

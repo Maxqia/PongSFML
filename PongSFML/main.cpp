@@ -7,13 +7,15 @@
 #include "Ball.h"
 #include "Screen.h"
 
+const float paddleMoveVelocity = 400;
+//const float paddleMoveVelocity = 12000;
+
 const int width = 800;
 const int height = 600;
 sf::Time deltaTime;
 
 int main() {
 	sf::RenderWindow window(sf::VideoMode(width,height), "Pong!");
-
 
 	sf::Font font;
 	std::string string = R"(C:\Windows\Fonts\arial.ttf)";
@@ -23,6 +25,7 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
+	// Setup Objects //
 	Ball ball;
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
@@ -32,8 +35,7 @@ int main() {
 	std::cout << ball.position.x << std::endl;
 
 	Paddle paddle1, paddle2;
-	const float paddleMoveVelocity = 400;
-	//const float paddleMoveVelocity = 12000;
+
 	paddle1.size = vec2(5,20);
 	paddle1.position = vec2(100,300);
 	paddle2.size = vec2(5,20);
@@ -54,14 +56,6 @@ int main() {
 	right.size = vec2(width/2, height/2);
 
 
-
-
-	/*screen.size = vec2(width/2, height/2);
-	screen.size.x += 2.0f * ball.size.x; // hide the ball behind the screen when scoring
-	screen.position = vec2(width/2, height/2);
-	screen.paddle1Score = 0;
-	screen.paddle2Score = 0;*/
-
 	// intersections
 	paddle1.collideObjects.push_back(&top);
 	paddle1.collideObjects.push_back(&bottom);
@@ -79,7 +73,7 @@ int main() {
 	ball.collideObjects.push_back(&left);
 	ball.collideObjects.push_back(&right);
 
-
+	// Main Loop //
 	sf::Clock clock;
 	while (window.isOpen()) {
 		deltaTime = clock.getElapsedTime();
@@ -93,7 +87,10 @@ int main() {
 			}
 		}
 
-		// Apply Movement & Physics
+		// Apply Movement & Physics //
+		paddle1.velocity = vec2();
+		paddle2.velocity = vec2();
+
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 			paddle1.velocity = vec2(0,-paddleMoveVelocity);
 		}
@@ -108,30 +105,20 @@ int main() {
 			paddle2.velocity = vec2(0,paddleMoveVelocity);
 		}
 
-		//ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
-
 		bool isColliding = false;
 
-		//isColliding |= paddle1.processCollisions();
-		//isColliding |= paddle2.processCollisions();
-		//isColliding |= ball.processCollisions();
-
-		// has to be ordered like this
-		paddle1.doCollision();
-		paddle1.applyVelocity();
-
-		paddle2.doCollision();
-		paddle2.applyVelocity();
-
-		ball.doCollision();
+		// ordering the physics system creates many... "interesting" effects....
+		isColliding |= ball.doCollision();
 		ball.applyVelocity();
 
+		isColliding |= paddle1.doCollision();
+		paddle1.applyVelocity();
 
-		// clear paddle velocities for next time
-		paddle1.velocity = vec2();
-		paddle2.velocity = vec2();
+		isColliding |= paddle2.doCollision();
+		paddle2.applyVelocity();
 
-		// Draw Everything
+
+		// Draw Everything //
 		window.clear();
 
 		//std::string collidingText = "Colliding : ";
@@ -143,15 +130,15 @@ int main() {
 
 		sf::Text paddle1Score(std::to_string(left.paddleScore), font, 48);
 		sf::Text paddle2Score(std::to_string(right.paddleScore), font, 48);
-		paddle1Score.setPosition(267,100);
-		paddle2Score.setPosition(533,100);
+		paddle1Score.setPosition(533,100);
+		paddle2Score.setPosition(267,100);
 		window.draw(paddle1Score);
 		window.draw(paddle2Score);
 
 		window.draw(ball);
 		window.draw(paddle1);
 		window.draw(paddle2);
-		//window.draw(screen);
+
 		window.draw(top);
 		window.draw(bottom);
 		window.draw(left);
