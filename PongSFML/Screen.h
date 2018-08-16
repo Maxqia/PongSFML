@@ -7,7 +7,7 @@ public:
 	int paddleScore = 0;
 
 	// only the ball will call this
-	void onCollided(Object& collider, CollideInfo info) override {
+	void onCollided(Object& collider) override {
 		paddleScore++;
 	}
 };

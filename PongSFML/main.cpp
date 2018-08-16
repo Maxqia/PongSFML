@@ -26,14 +26,14 @@ int main() {
 	Ball ball;
 	ball.size = vec2(5,5);
 	ball.position = vec2(width/2, height/2);
-	//ball.velocity = vec2(-300,-200);
-	ball.velocity = vec2(-6000,-4000);
+	ball.velocity = vec2(-300,-200);
+	//ball.velocity = vec2(-6000,-4000);
 
 	std::cout << ball.position.x << std::endl;
 
 	Paddle paddle1, paddle2;
-	//const float paddleMoveVelocity = 400;
-	const float paddleMoveVelocity = 12000;
+	const float paddleMoveVelocity = 400;
+	//const float paddleMoveVelocity = 12000;
 	paddle1.size = vec2(5,20);
 	paddle1.position = vec2(100,300);
 	paddle2.size = vec2(5,20);
@@ -41,10 +41,10 @@ int main() {
 
 	Object top, bottom;
 	top.position = vec2(width/2, (-height)/2);
-	top.size = vec2(width/2, height/2);
+	top.size = vec2((width/2)+5, (height/2)+20);
 
 	bottom.position = vec2(width/2, (3*height)/2);
-	bottom.size = vec2(width/2, height/2);
+	bottom.size = vec2(width/2, (height/2)+20);
 
 	Screen left, right;
 	left.position = vec2((-width)/2, height/2);
@@ -67,6 +67,10 @@ int main() {
 	paddle1.collideObjects.push_back(&bottom);
 	paddle2.collideObjects.push_back(&top);
 	paddle2.collideObjects.push_back(&bottom);
+
+	// ball moves too slow and sometimes gets stuck in paddles
+	paddle1.collideObjects.push_back(&ball);
+	paddle2.collideObjects.push_back(&ball);
 
 	ball.collideObjects.push_back(&paddle2);
 	ball.collideObjects.push_back(&paddle1);
@@ -91,28 +95,41 @@ int main() {
 
 		// Apply Movement & Physics
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			paddle1.velocity = deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+			paddle1.velocity = vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-			paddle1.velocity = deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle1.velocity = vec2(0,paddleMoveVelocity);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			paddle2.velocity = deltaTime.asSeconds() * vec2(0,-paddleMoveVelocity);
+			paddle2.velocity = vec2(0,-paddleMoveVelocity);
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			paddle2.velocity = deltaTime.asSeconds() * vec2(0,paddleMoveVelocity);
+			paddle2.velocity = vec2(0,paddleMoveVelocity);
 		}
 
 		//ball.newPosVector += deltaTime.asSeconds() * ball.velocity;
 
 		bool isColliding = false;
 
-		isColliding |= paddle1.processCollisions();
-		isColliding |= paddle2.processCollisions();
+		//isColliding |= paddle1.processCollisions();
+		//isColliding |= paddle2.processCollisions();
+		//isColliding |= ball.processCollisions();
 
-		isColliding |= ball.processCollisions();
+		// has to be ordered like this
+		paddle1.doCollision();
+		paddle1.applyVelocity();
 
+		paddle2.doCollision();
+		paddle2.applyVelocity();
+
+		ball.doCollision();
+		ball.applyVelocity();
+
+
+		// clear paddle velocities for next time
+		paddle1.velocity = vec2();
+		paddle2.velocity = vec2();
 
 		// Draw Everything
 		window.clear();
@@ -135,6 +152,10 @@ int main() {
 		window.draw(paddle1);
 		window.draw(paddle2);
 		//window.draw(screen);
+		window.draw(top);
+		window.draw(bottom);
+		window.draw(left);
+		window.draw(right);
 
 		// draw center line
 		for(int y = 50; y < (height - 50); y += 40) {

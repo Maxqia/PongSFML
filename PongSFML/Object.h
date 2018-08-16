@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/System.hpp>
 #include <vector>
+#include <unordered_set>
 
 #include "Vector.h"
 
@@ -11,6 +12,7 @@ struct CollideInfo {
 	vec2 normal;
 };
 
+#define QZERO 0.0002f
 class Object : public sf::Drawable {
 public:
 	/* position, centered on the object */
@@ -20,13 +22,120 @@ public:
 	vec2 velocity;
 	//vec2 newPosVector;
 
-	bool isCollidingWith(Object collider) {
-		bool collisionX = position.x + size.x >= collider.position.x - size.x
+	void applyVelocity() {
+		position += velocity * deltaTime.asSeconds();
+	}
+
+	bool isCollidingWith(const Object* collider) const {
+		/*bool collisionX = position.x + size.x >= collider.position.x - size.x
 			&& collider.position.x + size.x >= position.x - size.x;
 		bool collisionY = collider.position.y + size.y >= position.y - size.y
 			&& position.y + size.y >= collider.position.y - size.y;
-		return collisionX && collisionY;
+		return collisionX && collisionY;*/
+		/*bool collisionX = this->topLeftCorner().x >= collider->bottomRightCorner().x
+			&& collider->topLeftCorner().x >= this->bottomRightCorner().x;
+		bool collisionY = this->topLeftCorner().y >= collider->bottomRightCorner().y
+			&& collider->topLeftCorner().y >= this->bottomRightCorner().y;*/
+
+		/*bool collisionX = this->bottomRightCorner().x > collider->topLeftCorner().x
+			&& this->topLeftCorner().x < collider->bottomRightCorner().x;
+		bool collisionY = this->bottomRightCorner().y < collider->topLeftCorner().y
+			&& this->topLeftCorner().y > collider->bottomRightCorner().y;
+		return collisionX && collisionY;*/
+
+		bool collisionX1 = this->topLeftCorner().x > collider->bottomRightCorner().x;
+		bool collisionX2 = this->bottomRightCorner().x < collider->topLeftCorner().x;
+		bool collisionY1 = this->topLeftCorner().y > collider->bottomRightCorner().y;
+		bool collisionY2 = this->bottomRightCorner().y < collider->topLeftCorner().y;
+		return collisionX1 && collisionX2 && collisionY1 && collisionY2;
 	}
+
+	// lots of edge cases, but whatever 
+	vec2 collisionGetNormal(const Object* collider) const {
+		/*vec2 direction = collider.position - this->position;
+
+		if (abs(direction.x) < abs(direction.y)) {
+			if (signbit(direction.x)) {
+				return vec2(-1,0);
+			} else {
+				return vec2(1,0);
+			}
+		} else {
+			if (signbit(direction.y)) {
+				return vec2(0,-1);
+			} else {
+				return vec2(0,1);
+			}
+		}*/
+
+		// thinking done on paper :)
+		float leastOf = std::numeric_limits<float>::max();
+		vec2 normal = vec2(0,0);
+		float test;
+
+		// case : to the bottom
+		test = this->bottomRightCorner().y - collider->topLeftCorner().y;
+		if (abs(test) < leastOf) {
+			leastOf = abs(test);
+			normal = vec2(0,1);
+		}
+
+		// case : to the top
+		test = collider->bottomRightCorner().y - this->topLeftCorner().y;
+		if (abs(test) < leastOf) {
+			leastOf = abs(test);
+			normal = vec2(0,-1);
+		}
+
+		// case : to the right
+		test = this->topLeftCorner().x - collider->bottomRightCorner().x;
+		if (abs(test) < leastOf) {
+			leastOf = abs(test);
+			normal = vec2(1,0);
+		}
+
+		// case : to the left
+		test = collider->topLeftCorner().x - this->bottomRightCorner().x;
+		if (abs(test) < leastOf) {
+			leastOf = abs(test);
+			normal = vec2(-1,0);
+		}
+
+
+		if (normal == vec2(0,0)) {
+			throw std::runtime_error("didn't find normal!");
+		}
+		return normal;
+	}
+
+	std::unordered_set<Object*> objColliding = {};
+	void doCollision() {
+		std::unordered_set<Object*> objCurrentlyColliding;
+		for(Object* obj : collideObjects) {
+			if (isCollidingWith(obj)) {
+				vec2 normal = collisionGetNormal(obj);
+				
+				bool first = objColliding.find(obj) == objColliding.end();
+				if (first) {
+					onCollisionEnter(*obj, normal);
+				}
+				onCollision(*obj, normal, first);
+				obj->onCollided(*this);
+
+				objColliding.insert(obj);
+			} else {
+				size_t erasedObjects = objColliding.erase(obj);
+				if (erasedObjects > 0) {
+					// on collision exit,but too lazy to impl
+				}
+			}
+		}
+	}
+
+	virtual void onCollisionEnter(Object& obj, vec2 normal) {};
+	virtual void onCollision(Object& obj, vec2 normal, bool first) {};
+	virtual void onCollisionExit(Object& obj, vec2 normal) {};
+	virtual void onCollided(Object& collider) {};
 
 	void setYWithinRange(float min, float max) {
 		if (position.y < min) {
@@ -76,13 +185,12 @@ public:
 
 		float percentLeft = 1.0f;
 		float totalTime = deltaTime.asSeconds();
-
-		while (percentLeft > 0.01f) {
+		while(percentLeft >= QZERO) {
 			bool didCollide = false;
 			int smallestIndex = -1;
 			for(size_t i = 0; i < collideObjects.size(); i++) {
 				struct CollideInfo newInfo = {};
-				newInfo.percent = this->intersectionTest(*collideObjects[i], percentLeft * totalTime * velocity, newInfo.normal);
+				newInfo.percent = this->intersectionTest(*collideObjects[i], totalTime, newInfo.normal);
 				collideInfos[i] = newInfo;
 
 
@@ -95,8 +203,10 @@ public:
 			}
 		
 			if (didCollide) {
-				float percentUsed = percentLeft * collideInfos[smallestIndex].percent;
-				percentLeft -= percentUsed;
+				float lastPercent = percentLeft;
+				percentLeft = percentLeft * collideInfos[smallestIndex].percent;
+				float percentUsed = lastPercent - percentLeft;
+				//percentLeft -= percentUsed;
 				onCollide(*collideObjects[smallestIndex], collideInfos[smallestIndex], percentUsed * totalTime);
 				collideObjects[smallestIndex]->onCollided(*this, collideInfos[smallestIndex]);
 			} else {
@@ -116,14 +226,14 @@ public:
 
 	// r is newposvector
 	// s is other object's size
-	float intersectionTest(Object& diff, vec2 newPosVector, vec2& normal) const {
+	float intersectionTest(Object& diff, float totalTime, vec2& normal) const {
 		//Object b = minkowskiDifference(diff);
 		Object b = diff.minkowskiDifference(*this);
 		vec2 p(0,0);
-		
-		//vec2 r = newPosVector - diff.newPosVector;
+
+		vec2 r = totalTime * (velocity - diff.velocity);
 		//vec2 p = position;
-		vec2 r = newPosVector;
+		//vec2 r = newPosVector;
 
 		float side1 = lineIntTest(p, r, b.topLeftCorner(), vec2(-(2.0f * b.size).x, 0));
 		float side2 = lineIntTest(p, r, b.topLeftCorner(), vec2(0, -(2.0f * b.size).y));
@@ -173,7 +283,7 @@ public:
 		float z = qps / rxs;
 		float u = qpr / rxs;
 		
-		if (z <= 1.0f && z >= 0.0f && u <= 1.0f && u >= 0.0f) {
+		if (z <= 1.0f && z >= QZERO && u <= 1.0f && u >= QZERO) {
 			return z;
 		} else {
 			return std::numeric_limits<float>::max();
